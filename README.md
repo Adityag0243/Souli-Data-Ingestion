@@ -39,7 +39,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2) Run a single video
+### 2) Run the Streamlit UI (Recommended)
+You can use the new Streamlit interface for an interactive dashboard to run data ingestion and chatbot testing.
+```bash
+streamlit run app.py
+```
+This will open the application in your browser at `http://localhost:8501` where you can upload CSVs and test the diagnostic chatbot visually.
+
+### 3) Run a single video (CLI)
 ```bash
 souli run youtube \
   --config configs/pipeline.yaml \
@@ -61,7 +68,7 @@ souli run energy \
 ```
 The default config supports the PW Excel format: sheets **ExpressionsMapping** (columns: Main Question, Category, Related Inner Issues, Reality Commitment Check, energy_node/…) and **Inner energy Framework**. Column mapping is in `configs/pipeline.yaml` under `energy.expr_column_map`.
 
-### 5) Run many videos from a CSV (different data per video)
+### 6) Run many videos from a CSV (different data per video)
 Use a CSV with column `url` or `youtube_url`. Optional columns: `name`, `video_id`, `title` (used as `source_video` in merged outputs).
 ```bash
 souli run videos \
@@ -76,7 +83,7 @@ With `--merge` you also get:
 
 See `data/videos.csv.example` for CSV format.
 
-### 6) Full run: energy + all videos in one go
+### 7) Full run: energy + all videos in one go
 ```bash
 souli run all \
   --config configs/pipeline.yaml \
@@ -85,7 +92,7 @@ souli run all \
   --merge
 ```
 
-### 7) Match user venting → diagnosis + solution + teaching (local only)
+### 8) Match user venting → diagnosis + solution + teaching (CLI)
 When someone comes to you with a problem (e.g. “I am very sad”), you:
 1. **Diagnose** their problem (which energy node: blocked, depleted, scattered, etc.)
 2. Get the **framework solution** (practices, meditations) for that node from your Excel

@@ -22,10 +22,11 @@ networks:
     driver: bridge
 
 volumes:
-  ollama-models:      # Persists pulled LLM models across container restarts
-  qdrant-storage:     # Persists Qdrant collection data
-  souli-outputs:      # Pipeline outputs (teaching_ready.xlsx, gold.xlsx, etc.)
-  souli-data:         # Input data (Excel, videos.csv)
+  ollama-models: # Persists pulled LLM models across container restarts
+  qdrant-storage: # Persists Qdrant collection data
+  souli-outputs: # Pipeline outputs (teaching_ready.xlsx, gold.xlsx, etc.)
+  souli-data:
+    # Input data (Excel, videos.csv)
 
 services:
 
@@ -39,7 +40,7 @@ services:
     volumes:
       - ollama-models:/root/.ollama
     ports:
-      - "11434:11434"          # Expose so you can also call it from outside VM
+      - "11434:11434" # Expose so you can also call it from outside VM
     environment:
       - OLLAMA_HOST=0.0.0.0
     # GPU support — requires NVIDIA Container Toolkit on the GCE VM
@@ -49,9 +50,9 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -67,13 +68,13 @@ services:
     volumes:
       - qdrant-storage:/qdrant/storage
     ports:
-      - "6333:6333"           # HTTP API
-      - "6334:6334"           # gRPC API
+      - "6333:6333" # HTTP API
+      - "6334:6334" # gRPC API
     environment:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -93,8 +94,8 @@ services:
       qdrant:
         condition: service_healthy
     volumes:
-      - souli-data:/app/data          # mount your Excel + videos.csv here
-      - souli-outputs:/app/outputs    # pipeline outputs persist here
+      - souli-data:/app/data # mount your Excel + videos.csv here
+      - souli-outputs:/app/outputs # pipeline outputs persist here
     environment:
       # These override the GCP config values — set real values in .env
       - OLLAMA_ENDPOINT=http://ollama:11434
@@ -110,9 +111,11 @@ services:
       - SOULI_OUTPUTS_DIR=/app/outputs
       - SOULI_LOG_LEVEL=${SOULI_LOG_LEVEL:-INFO}
     # Keep alive so you can exec into it for CLI commands
-    command: ["tail", "-f", "/dev/null"]
+    command: [ "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0" ]
+    ports:
+      - "8501:8501"
     healthcheck:
-      test: ["CMD", "souli", "health"]
+      test: [ "CMD", "souli", "health" ]
       interval: 60s
       timeout: 30s
       retries: 3
@@ -127,13 +130,13 @@ services:
     networks:
       - souli-net
     ports:
-      - "7880:7880"           # HTTP + WebSocket
-      - "7881:7881"           # TURN/TCP
-      - "50100-50200:50100-50200/udp"   # WebRTC UDP range
+      - "7880:7880" # HTTP + WebSocket
+      - "7881:7881" # TURN/TCP
+      - "50100-50200:50100-50200/udp" # WebRTC UDP range
     environment:
       - LIVEKIT_CONFIG_BODY=${LIVEKIT_CONFIG_BODY}
     volumes:
       - ./configs/livekit.yaml:/etc/livekit.yaml:ro
-    command: ["--config", "/etc/livekit.yaml"]
+    command: [ "--config", "/etc/livekit.yaml" ]
     profiles:
-      - livekit-selfhosted      # Only starts if: docker compose --profile livekit-selfhosted up
+      - livekit-selfhosted # Only starts if: docker compose --profile livekit-selfhosted up

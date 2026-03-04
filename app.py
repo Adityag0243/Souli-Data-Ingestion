@@ -1,0 +1,45 @@
+"""
+Main Streamlit app with multi-page navigation
+"""
+import streamlit as st
+
+# Configure page
+st.set_page_config(
+    page_title="Souli Pipeline",
+    page_icon="🎯",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Add custom CSS
+st.markdown("""
+    <style>
+    .main {
+        padding-top: 2rem;
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def main():
+    st.title("🎯 Souli Data Ingestion & Chatbot")
+    
+    # Sidebar navigation
+    page = st.sidebar.radio(
+        "Select Interface",
+        ["🎬 Data Ingestion", "💬 Chatbot Testing"],
+        help="Choose between data ingestion or chatbot testing"
+    )
+    
+    if page == "🎬 Data Ingestion":
+        from pages import data_ingestion
+        data_ingestion.show()
+    elif page == "💬 Chatbot Testing":
+        from pages import chatbot_testing
+        chatbot_testing.show()
+
+if __name__ == "__main__":
+    main()

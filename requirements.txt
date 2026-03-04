@@ -26,9 +26,12 @@ qdrant-client>=1.9.0
 edge-tts>=6.1.9
 
 # ── LiveKit (uncomment when deploying voice pipeline) ─────────────────────────
-# livekit>=0.11
-# livekit-agents>=0.8
+livekit>=0.11
+livekit-agents>=0.8
 
 # ── Optional cloud STT (uncomment if using Deepgram) ──────────────────────────
 # deepgram-sdk>=3.0
 # sounddevice   # for souli voice --local (mic/speaker test)
+
+# ── Streamlit UI 
+streamlit>=1.28.0
