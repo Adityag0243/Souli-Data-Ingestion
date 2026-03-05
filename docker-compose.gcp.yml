@@ -52,13 +52,19 @@ services:
               count: 1
               capabilities: [ gpu ]
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
+      test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/11434' || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 20s
+    # healthcheck:
+    #   test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 20s
 
-  # ── Qdrant (vector store) ──────────────────────────────────────────────────
+    # ── Qdrant (vector store) ──────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:latest
     container_name: souli-qdrant
@@ -74,12 +80,17 @@ services:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
+      test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' || exit 1" ]
       interval: 20s
       timeout: 5s
       retries: 5
+    # healthcheck:
+    #   test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
+    #   interval: 20s
+    #   timeout: 5s
+    #   retries: 5
 
-  # ── Souli pipeline container ───────────────────────────────────────────────
+    # ── Souli pipeline container ───────────────────────────────────────────────
   souli:
     build:
       context: .

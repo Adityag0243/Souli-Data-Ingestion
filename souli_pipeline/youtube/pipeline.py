@@ -31,7 +31,7 @@ def _explode_chunks(df_chunks: pd.DataFrame, overlap_words: int, max_words: int)
                 "words": len(p.split()),
                 "text": p
             })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["start", "end", "words", "text"])
 
 def run_youtube_pipeline(
     cfg: PipelineConfig,
