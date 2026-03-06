@@ -72,15 +72,19 @@ def run_playlist(
     config: str = typer.Option(..., "--config", "-c"),
     playlist_url: str = typer.Option(..., "--playlist-url"),
     no_tag: bool = typer.Option(False, "--no-tag"),
+    start: int = typer.Option(1, "--start", help="Start from this video number (1-indexed)"),
+    limit: int = typer.Option(None, "--limit", help="Number of videos to process"),
 ):
     cfg = load_config(config)
     rid = get_run_id()
     urls = list_playlist_videos(playlist_url)
     print(f"[cyan]Found {len(urls)} videos[/cyan]")
-    for i, url in enumerate(urls, 1):
-        out_dir = os.path.join(cfg.run.outputs_dir, rid, "youtube", f"video_{i:03d}")
+    batch = urls[start - 1: (start - 1 + limit) if limit else None]
+    print(f"[cyan]Processing videos {start} to {start + len(batch) - 1}[/cyan]")
+    for idx, url in enumerate(batch, start):
+        out_dir = os.path.join(cfg.run.outputs_dir, rid, "youtube", f"video_{idx:03d}")
         out = run_youtube_pipeline(cfg, youtube_url=url, out_dir=out_dir, tag_energy=not no_tag)
-        print(f"[green]{i}/{len(urls)}[/green] {url}")
+        print(f"[green]{idx}/{len(urls)}[/green] {url}")
         for k, v in out.items():
             print(f"   - {k}: {v}")
 
@@ -296,9 +300,19 @@ def voice_cmd(
         print("[dim]Press Ctrl+C to stop.[/dim]")
         asyncio.run(agent.run_local_voice())
     else:
+        import subprocess
         v = cfg.voice
         print(f"[cyan]Connecting to LiveKit room '{v.room_name}' at {v.livekit_url}...[/cyan]")
-        asyncio.run(agent.run())
+        worker_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice", "run_worker.py")
+        env = {
+            **os.environ,
+            "SOULI_CONFIG_PATH": config,
+        }
+        if gold_path:
+            env["SOULI_GOLD_PATH"] = gold_path
+        if excel_path:
+            env["SOULI_EXCEL_PATH"] = excel_path
+        subprocess.run([sys.executable, worker_script, "start"], env=env)
 
 @app.command("tag")
 def tag_cmd(

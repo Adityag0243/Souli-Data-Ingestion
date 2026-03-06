@@ -21,6 +21,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source
 COPY . /app
 
+# Install the souli package (registers the `souli` CLI entrypoint)
+RUN pip install --no-cache-dir -e /app
+
 # Create data and outputs directories
 RUN mkdir -p /app/data /app/outputs
 

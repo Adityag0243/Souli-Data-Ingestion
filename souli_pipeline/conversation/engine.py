@@ -19,12 +19,14 @@ Usage:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Dict, Generator, List, Optional
 
 logger = logging.getLogger(__name__)
 
 # Conversation phases
+PHASE_GREETING = "greeting"   # collect user's name before anything else
 PHASE_INTAKE = "intake"
 PHASE_DEEPENING = "deepening"
 PHASE_INTENT_CHECK = "intent_check"
@@ -34,8 +36,9 @@ PHASE_VENTING = "venting"
 
 @dataclass
 class ConversationState:
-    phase: str = PHASE_INTAKE
+    phase: str = PHASE_GREETING   # start in greeting phase
     turn_count: int = 0
+    user_name: Optional[str] = None  # collected during greeting
     # LLM message history for Ollama
     messages: List[Dict[str, str]] = field(default_factory=list)
     # Detected or inferred energy node
@@ -169,8 +172,8 @@ class ConversationEngine:
 
     def greeting(self) -> str:
         """Return the opening greeting (call before first user message)."""
-        from .intake import get_opening
-        return get_opening()
+        from .intake import get_greeting
+        return get_greeting()
 
     # ------------------------------------------------------------------
     # Internal processing
@@ -187,7 +190,10 @@ class ConversationEngine:
 
         # ---- Phase routing ----
 
-        if s.phase == PHASE_INTAKE:
+        if s.phase == PHASE_GREETING:
+            response = self._handle_greeting(user_text, stream)
+
+        elif s.phase == PHASE_INTAKE:
             response = self._handle_intake(user_text, stream)
 
         elif s.phase == PHASE_DEEPENING:
@@ -214,6 +220,27 @@ class ConversationEngine:
     # ------------------------------------------------------------------
     # Phase handlers
     # ------------------------------------------------------------------
+
+    def _handle_greeting(self, user_text: str, stream: bool):
+        """Collect user's name; return a warm, personalised welcome."""
+        s = self.state
+        name = _extract_name(user_text)
+        s.user_name = name
+        s.phase = PHASE_INTAKE  # move to intake for next turn
+
+        if name:
+            return (
+                f"It's so lovely to meet you, {name}. "
+                f"I'm Souli — I'm here to sit with you, understand what's in your heart, "
+                f"and walk alongside you at whatever pace feels right. "
+                f"How are you feeling today?"
+            )
+        else:
+            return (
+                "It's lovely to have you here. "
+                "I'm Souli — I'm here to sit with you, understand your soul and emotions, "
+                "and walk alongside you. How are you feeling today?"
+            )
 
     def _handle_intake(self, user_text: str, stream: bool):
         s = self.state
@@ -404,6 +431,8 @@ class ConversationEngine:
                 ollama_endpoint=self.ollama_endpoint,
                 temperature=self.temperature,
                 stream=stream,
+                user_name=self.state.user_name,
+                phase=self.state.phase,
             )
         except Exception as exc:
             logger.warning("Ollama response failed: %s — using fallback.", exc)
@@ -423,3 +452,32 @@ class ConversationEngine:
             "phase": s.phase,
             "turn_count": s.turn_count,
         }
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+
+_STOP_WORDS = {"hello", "hi", "hey", "yes", "no", "ok", "okay", "sure", "thanks"}
+
+
+def _extract_name(text: str) -> Optional[str]:
+    """
+    Try to extract a first name from the user's greeting response.
+    Handles: "John", "I'm John", "I am John", "my name is John", "call me John".
+    Returns capitalised name, or None if nothing suitable found.
+    """
+    text = (text or "").strip()
+    # Named patterns
+    for pattern in [
+        r"(?:i'?m|i am|my name is|name(?:'?s)? is|call me|they call me)\s+([A-Za-z]+)",
+    ]:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            return m.group(1).capitalize()
+    # Short response: likely just a name (1–3 words)
+    words = [w for w in text.split() if w.isalpha()]
+    meaningful = [w for w in words if w.lower() not in _STOP_WORDS]
+    if meaningful and len(meaningful) <= 3:
+        return meaningful[0].capitalize()
+    return None

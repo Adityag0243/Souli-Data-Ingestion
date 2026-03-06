@@ -71,11 +71,12 @@ class SouliVoiceAgent:
     # LiveKit agent entry point (new livekit-agents SDK style)
     # ------------------------------------------------------------------
 
-    async def run(self):
+    def start(self):
         """
-        Main entry point. Connects to LiveKit room and starts the voice loop.
+        Synchronous entry point. Connects to LiveKit room and starts the voice loop.
         Requires livekit-agents >= 0.8
         """
+        import sys
         try:
             from livekit.agents import WorkerOptions, cli
             from livekit.agents import AutoSubscribe, JobContext
@@ -117,7 +118,17 @@ class SouliVoiceAgent:
             api_secret=v.livekit_api_secret,
             ws_url=v.livekit_url,
         )
-        cli.run_app(worker_opts)
+        # livekit-agents cli.run_app parses sys.argv — override to pass "start"
+        old_argv = sys.argv[:]
+        sys.argv = [sys.argv[0], "start"]
+        try:
+            cli.run_app(worker_opts)
+        finally:
+            sys.argv = old_argv
+
+    async def run(self):
+        """Async wrapper kept for backwards compatibility."""
+        self.start()
 
     # ------------------------------------------------------------------
     # Standalone mode (without LiveKit room — for testing voice locally)

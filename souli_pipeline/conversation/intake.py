@@ -42,10 +42,16 @@ ENERGY_PROBES: Dict[str, List[str]] = {
     ],
 }
 
-# Opening question — always asked first, neutral and warm
+# First message Souli sends — warm intro, asks for name
+GREETING_MESSAGE = (
+    "Hi, I'm Souli. I'm here to sit with you — to understand your soul, your emotions, "
+    "and walk alongside you. Before we begin, could you tell me your name?"
+)
+
+# Opening question after name is collected — light, not heavy
 OPENING_QUESTION = (
-    "I'm here with you. Before we go anywhere, I just want to understand — "
-    "what's been weighing on your heart lately? You can share as much or as little as you feel comfortable with."
+    "I'm here with you. What's been on your mind or in your heart lately? "
+    "You can share as much or as little as you feel comfortable with."
 )
 
 # Follow-up when user gives short answers
@@ -63,6 +69,10 @@ COMMITMENT_CHECKS: Dict[str, str] = {
     "outofcontrol_energy": "Am I ready to pause before reacting and find balance?",
     "normal_energy": "Am I ready to grow beyond my comfort zone?",
 }
+
+
+def get_greeting() -> str:
+    return GREETING_MESSAGE
 
 
 def get_opening() -> str:

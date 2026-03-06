@@ -30,6 +30,9 @@ F_END = "end"
 _DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 _VECTOR_SIZE = 384  # all-MiniLM-L6-v2 output dim
 
+# Module-level encoder cache — loaded once per process, not on every call
+_encoder_cache: dict = {}
+
 
 # ---------------------------------------------------------------------------
 # Client factory
@@ -80,9 +83,17 @@ def ensure_collection(
 # Embed helper
 # ---------------------------------------------------------------------------
 
+def _get_encoder(model_name: str = _DEFAULT_MODEL):
+    """Return a cached SentenceTransformer — loaded once per process."""
+    if model_name not in _encoder_cache:
+        from sentence_transformers import SentenceTransformer
+        logger.info("Loading embedding model: %s", model_name)
+        _encoder_cache[model_name] = SentenceTransformer(model_name)
+    return _encoder_cache[model_name]
+
+
 def _embed_texts(texts: List[str], model_name: str = _DEFAULT_MODEL) -> List[List[float]]:
-    from sentence_transformers import SentenceTransformer
-    model = SentenceTransformer(model_name)
+    model = _get_encoder(model_name)
     return model.encode(texts, convert_to_numpy=True, show_progress_bar=False).tolist()
 
 

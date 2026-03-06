@@ -27,7 +27,10 @@ def merge_teaching_outputs(
         path_ready = os.path.join(out_dir_v, teaching_ready_filename)
         if os.path.isfile(path_ready):
             df = pd.read_excel(path_ready)
-            df.insert(0, "source_video", label)
+            if "source_video" not in df.columns:
+                df.insert(0, "source_video", label)
+            else:
+                df["source_video"] = label
             ready_dfs.append(df)
     if ready_dfs:
         merged_ready = pd.concat(ready_dfs, ignore_index=True)
@@ -43,7 +46,10 @@ def merge_teaching_outputs(
         path_cards = os.path.join(out_dir_v, teaching_cards_filename)
         if os.path.isfile(path_cards):
             df = pd.read_excel(path_cards)
-            df.insert(0, "source_video", label)
+            if "source_video" not in df.columns:
+                df.insert(0, "source_video", label)
+            else:
+                df["source_video"] = label
             card_dfs.append(df)
     if card_dfs:
         merged_cards = pd.concat(card_dfs, ignore_index=True)

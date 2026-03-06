@@ -79,6 +79,10 @@ def run_youtube_pipeline(
     path_chunks_clean = os.path.join(out_dir, "chunks_clean.xlsx")
     df_chunks_clean.to_excel(path_chunks_clean, index=False)
 
+    if df_chunks_clean.empty or "text" not in df_chunks_clean.columns:
+        logger.warning("No chunks extracted from %s — skipping.", youtube_url)
+        return {"segments": path_segments, "chunks_raw": path_chunks_raw, "chunks_clean": path_chunks_clean}
+
     df_chunks_clean["chunk_type"] = df_chunks_clean["text"].apply(
         lambda t: classify(t, min_words_noise=y.classify.min_words_noise, min_words_teaching=y.classify.min_words_teaching)
     )
