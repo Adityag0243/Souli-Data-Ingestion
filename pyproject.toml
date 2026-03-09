@@ -13,5 +13,5 @@ dependencies = []
 [project.scripts]
 souli = "souli_pipeline.cli:app"
 
-[tool.setuptools]
-packages = ["souli_pipeline"]
+[tool.setuptools.packages.find]
+include = ["souli_pipeline*"]

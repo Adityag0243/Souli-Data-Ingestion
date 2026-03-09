@@ -151,3 +151,4 @@ services:
     command: [ "--config", "/etc/livekit.yaml" ]
     profiles:
       - livekit-selfhosted # Only starts if: docker compose --profile livekit-selfhosted up
+
