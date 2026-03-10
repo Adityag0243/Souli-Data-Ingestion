@@ -228,18 +228,23 @@ class ConversationEngine:
         s.user_name = name
         s.phase = PHASE_INTAKE  # move to intake for next turn
 
-        if name:
+        # Check if user already shared something emotional (not just a name intro)
+        words = user_text.lower().split()
+        shared_feelings = any(w in _NOT_NAMES for w in words)
+
+        if name and not shared_feelings:
+            return f"Lovely to meet you, {name}. How are you feeling today?"
+        elif name and shared_feelings:
+            # They shared their name AND something emotional — acknowledge both
             return (
-                f"It's so lovely to meet you, {name}. "
-                f"I'm Souli — I'm here to sit with you, understand what's in your heart, "
-                f"and walk alongside you at whatever pace feels right. "
-                f"How are you feeling today?"
+                f"I hear you, {name}. I'm glad you're here. "
+                f"Tell me more — what's been going on?"
             )
         else:
+            # No name — they just shared feelings directly
             return (
-                "It's lovely to have you here. "
-                "I'm Souli — I'm here to sit with you, understand your soul and emotions, "
-                "and walk alongside you. How are you feeling today?"
+                "I hear you. I'm glad you reached out. "
+                "Tell me more — what's been going on for you?"
             )
 
     def _handle_intake(self, user_text: str, stream: bool):
@@ -460,24 +465,50 @@ class ConversationEngine:
 
 _STOP_WORDS = {"hello", "hi", "hey", "yes", "no", "ok", "okay", "sure", "thanks"}
 
+# Words that can follow "I am/I'm" that are NOT names
+_NOT_NAMES = {
+    "very", "so", "really", "quite", "just", "feeling", "not", "too", "a", "an", "the",
+    "good", "bad", "okay", "fine", "great", "terrible", "horrible", "well", "better",
+    "sad", "happy", "angry", "tired", "exhausted", "stressed", "anxious", "worried",
+    "scared", "nervous", "depressed", "confused", "lost", "desperate", "frustrated",
+    "overwhelmed", "lonely", "alone", "hurt", "broken", "stuck", "empty", "numb",
+    "excited", "grateful", "blessed", "blessed", "unsure", "unsettled", "restless",
+    "here", "there", "new", "back", "trying", "going", "looking", "feeling", "thinking",
+    "also", "still", "already", "always", "never", "sometimes", "often", "just",
+    "bit", "little", "kind", "sort", "totally", "completely", "absolutely",
+}
+
 
 def _extract_name(text: str) -> Optional[str]:
     """
     Try to extract a first name from the user's greeting response.
-    Handles: "John", "I'm John", "I am John", "my name is John", "call me John".
+    Handles: "John", "I'm John", "my name is John", "call me John".
     Returns capitalised name, or None if nothing suitable found.
     """
     text = (text or "").strip()
-    # Named patterns
+
+    # Explicit name patterns (higher confidence)
     for pattern in [
-        r"(?:i'?m|i am|my name is|name(?:'?s)? is|call me|they call me)\s+([A-Za-z]+)",
+        r"(?:my name is|name(?:'?s)? is|call me|they call me)\s+([A-Za-z]+)",
     ]:
         m = re.search(pattern, text, re.IGNORECASE)
         if m:
-            return m.group(1).capitalize()
-    # Short response: likely just a name (1–3 words)
+            candidate = m.group(1).lower()
+            if candidate not in _NOT_NAMES and candidate not in _STOP_WORDS:
+                return m.group(1).capitalize()
+
+    # "i'm X" or "i am X" — only if X looks like a name (not an adjective/emotion)
+    for pattern in [r"(?:i'?m|i am)\s+([A-Za-z]+)"]:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            candidate = m.group(1).lower()
+            if candidate not in _NOT_NAMES and candidate not in _STOP_WORDS:
+                return m.group(1).capitalize()
+
+    # Short response (1-2 words only): likely just a name
     words = [w for w in text.split() if w.isalpha()]
-    meaningful = [w for w in words if w.lower() not in _STOP_WORDS]
-    if meaningful and len(meaningful) <= 3:
+    meaningful = [w for w in words if w.lower() not in _STOP_WORDS and w.lower() not in _NOT_NAMES]
+    if meaningful and len(words) <= 2:
         return meaningful[0].capitalize()
+
     return None
