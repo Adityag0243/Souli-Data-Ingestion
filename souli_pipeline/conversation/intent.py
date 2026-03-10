@@ -29,6 +29,19 @@ _SOLUTION_PATTERNS = [
     r"\bi (don't|do not) know what to do\b",
     r"\bi('m| am) (lost|confused|stuck)\b",
     r"\bfix (this|it|my)\b",
+    # Hinglish / casual solution requests
+    r"\bsolution (do|de|bao|btao|na|chahiye)\b",
+    r"\b(btao|batao)\b",
+    r"\b(bata|bata do|bata na)\b",
+    r"\bkya karu\b",
+    r"\bkya (karna|karna chahiye|kare|karein)\b",
+    r"\b(tell|give).{0,10}solution\b",
+    r"\bsolution\b",
+    r"\badvice\b",
+    r"\bguidance\b",
+    r"\bkya (sochta|lagta|bolte)\b",
+    r"\b(suggest|suggestion)\b",
+    r"\bbhaag (jau|jaun|jau kya)\b",
 ]
 
 _VENTING_PATTERNS = [

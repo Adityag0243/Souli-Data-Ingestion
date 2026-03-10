@@ -460,7 +460,12 @@ class ConversationEngine:
 # Module-level helpers
 # ---------------------------------------------------------------------------
 
-_STOP_WORDS = {"hello", "hi", "hey", "yes", "no", "ok", "okay", "sure", "thanks"}
+_STOP_WORDS = {
+    "hello", "hi", "hey", "yes", "no", "ok", "okay", "sure", "thanks",
+    # Hinglish greetings and fillers often mistaken for names
+    "hlo", "hii", "helo", "yrr", "yaar", "bhai", "dost", "sir", "mam",
+    "na", "ha", "haan", "nahi", "hn", "hmm", "hm", "um", "uh",
+}
 
 # Words that can follow "I am/I'm" that are NOT names
 _NOT_NAMES = {
