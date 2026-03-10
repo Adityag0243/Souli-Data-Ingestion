@@ -345,19 +345,17 @@ class ConversationEngine:
 
     def _handle_solution(self, user_text: str, stream: bool):
         s = self.state
-        from .counselor import generate_solution_response, fallback_response
-        from .solution import get_solution_for_node
+        from .counselor import generate_solution_response
+        from .solution import get_solution_for_node, format_solution_text
 
         node = s.energy_node or "blocked_energy"
         sol = get_solution_for_node(node, self.framework)
 
         if not sol:
-            logger.warning("No framework solution for node '%s'", node)
-            return (
-                fallback_response(node)
-                if not stream
-                else iter([fallback_response(node)])
-            )
+            logger.warning("No framework solution for node '%s' — using LLM only", node)
+            # No framework — just let LLM respond naturally
+            rag = self._rag_retrieve(user_text, node)
+            return self._llm_response(user_text, rag, stream)
 
         user_context = s.user_text_buffer.strip()
         try:
@@ -372,7 +370,6 @@ class ConversationEngine:
             )
         except Exception as exc:
             logger.warning("Ollama solution generation failed: %s", exc)
-            from .solution import format_solution_text
             return format_solution_text(node, sol)
 
     # ------------------------------------------------------------------

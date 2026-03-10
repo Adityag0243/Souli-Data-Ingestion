@@ -18,7 +18,9 @@ CONFIG_PATH = os.environ.get(
     str(Path(__file__).parent.parent / "configs" / "pipeline.gcp.yaml"),
 )
 GOLD_PATH  = os.environ.get("SOULI_GOLD_PATH", None)
-EXCEL_PATH = os.environ.get("SOULI_EXCEL_PATH", None)
+# Default to framework Excel if present
+_default_excel = str(Path(__file__).parent / "data" / "Souli_EnergyFramework_PW (1).xlsx")
+EXCEL_PATH = os.environ.get("SOULI_EXCEL_PATH", _default_excel if os.path.exists(_default_excel) else None)
 
 logging.basicConfig(level=logging.WARNING)
 
