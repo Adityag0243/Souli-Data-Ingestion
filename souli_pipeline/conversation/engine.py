@@ -331,7 +331,7 @@ class ConversationEngine:
 
     def _handle_venting(self, user_text: str, stream: bool):
         s = self.state
-        from .intent import detect_intent
+        from .intent import detect_intent, INTENT_BRIDGE
 
         # Check if user suddenly wants a solution
         intent = detect_intent(user_text)
@@ -339,6 +339,23 @@ class ConversationEngine:
             s.intent = "solution"
             s.phase = PHASE_SOLUTION
             return self._handle_solution(user_text, stream)
+
+        # Track short answers in venting — after 3 consecutive short answers, offer to help
+        _short = len(user_text.strip().split()) <= 3
+        if _short:
+            s.short_answer_count += 1
+        else:
+            s.short_answer_count = 0
+
+        if s.short_answer_count >= 3:
+            s.short_answer_count = 0
+            s.phase = PHASE_INTENT_CHECK
+            name_part = f"{s.user_name}, " if s.user_name else ""
+            return (
+                f"{name_part}I hear you. "
+                "Would you like me to suggest something that might actually help, "
+                "or do you just want to keep talking?"
+            )
 
         rag = self._rag_retrieve(user_text, s.energy_node)
         return self._llm_response(user_text, rag, stream)
@@ -423,6 +440,17 @@ class ConversationEngine:
         # Limit history to last 8 messages (4 turns) to avoid Ollama timeout
         history = self.state.messages[:-1][-8:]  # exclude current, keep last 8
 
+        # Build a short list of topics already asked about (from assistant messages)
+        asked_topics = []
+        _topic_words = ["sleep", "eat", "food", "relax", "break", "support", "colleague",
+                        "manager", "family", "friend", "work", "office", "exercise", "hobby"]
+        for m in self.state.messages:
+            if m["role"] == "assistant":
+                low = m["content"].lower()
+                for t in _topic_words:
+                    if t in low and t not in asked_topics:
+                        asked_topics.append(t)
+
         try:
             return generate_counselor_response(
                 history=history,
@@ -435,6 +463,7 @@ class ConversationEngine:
                 stream=stream,
                 user_name=self.state.user_name,
                 phase=self.state.phase,
+                asked_topics=asked_topics,
             )
         except Exception as exc:
             logger.warning("Ollama response failed: %s — using fallback.", exc)

@@ -37,10 +37,17 @@ When teaching content is provided, use it naturally — like a friend sharing so
 """
 
 
-def _build_counselor_system(user_name: Optional[str] = None, phase: Optional[str] = None) -> str:
+def _build_counselor_system(
+    user_name: Optional[str] = None,
+    phase: Optional[str] = None,
+    asked_topics: Optional[List[str]] = None,
+) -> str:
     system = _COUNSELOR_SYSTEM_BASE
     if user_name:
         system = f"The person's name is {user_name}. Address them by name occasionally, warmly.\n\n" + system
+    if asked_topics:
+        system += f"\n\nTopics already discussed (DO NOT ask about these again): {', '.join(asked_topics)}."
+        system += "\nAsk about something NEW or acknowledge what they said and move the conversation forward."
     if phase in ("intake", "deepening"):
         system += "\n\nSTRICT: 1-2 sentences only. One short question at the end."
     elif phase == "intent_check":
@@ -134,6 +141,7 @@ def generate_counselor_response(
     stream: bool = False,
     user_name: Optional[str] = None,
     phase: Optional[str] = None,
+    asked_topics: Optional[List[str]] = None,
 ) -> str | Generator[str, None, None]:
     """
     Generate an empathetic counselor response using Ollama llama3.1 + RAG.
@@ -151,7 +159,7 @@ def generate_counselor_response(
     )
 
     messages = _build_chat_messages(history, user_message, rag_chunks, energy_node)
-    system = _build_counselor_system(user_name=user_name, phase=phase)
+    system = _build_counselor_system(user_name=user_name, phase=phase, asked_topics=asked_topics)
 
     if stream:
         return llm.chat_stream(messages, system=system, temperature=temperature)
