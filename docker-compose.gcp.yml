@@ -121,12 +121,11 @@ services:
       - LIVEKIT_ROOM=${LIVEKIT_ROOM:-souli-room}
       - SOULI_OUTPUTS_DIR=/app/outputs
       - SOULI_LOG_LEVEL=${SOULI_LOG_LEVEL:-INFO}
-    # Keep alive so you can exec into it for CLI commands
-    command: [ "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0" ]
+    command: [ "streamlit", "run", "/app/souli_pipeline/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0" ]
     ports:
       - "8501:8501"
     healthcheck:
-      test: [ "CMD", "souli", "health" ]
+      test: [ "CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8501' || exit 1" ]
       interval: 60s
       timeout: 30s
       retries: 3

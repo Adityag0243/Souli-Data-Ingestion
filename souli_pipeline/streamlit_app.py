@@ -43,12 +43,20 @@ st.caption("Your inner wellness companion")
 
 # ── Session helpers ───────────────────────────────────────────────────────────
 
-@st.cache_resource(show_spinner="Loading Souli...")
-def get_engine():
+@st.cache_resource(show_spinner="Loading config...")
+def _get_config():
     from souli_pipeline.config_loader import load_config
-    from souli_pipeline.conversation.engine import ConversationEngine
-    cfg = load_config(CONFIG_PATH)
-    return ConversationEngine.from_config(cfg, gold_path=GOLD_PATH, excel_path=EXCEL_PATH)
+    return load_config(CONFIG_PATH)
+
+def get_engine():
+    """Each browser session gets its own engine with fresh state."""
+    if "engine" not in st.session_state:
+        from souli_pipeline.conversation.engine import ConversationEngine
+        cfg = _get_config()
+        st.session_state.engine = ConversationEngine.from_config(
+            cfg, gold_path=GOLD_PATH, excel_path=EXCEL_PATH
+        )
+    return st.session_state.engine
 
 
 @st.cache_resource(show_spinner="Loading voice models...")

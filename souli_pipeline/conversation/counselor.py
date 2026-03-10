@@ -61,7 +61,18 @@ def _build_counselor_system(user_name: Optional[str] = None, phase: Optional[str
     if phase in ("intake", "deepening"):
         system += (
             "\n\nCurrent phase: early conversation. Stay light and curious. "
-            "Do not dive into deep emotional framing yet. Just be present and warm."
+            "Do not dive into deep emotional framing yet. Just be present and warm. "
+            "STRICT: Respond in 1-2 sentences only. End with ONE gentle question."
+        )
+    elif phase == "intent_check":
+        system += (
+            "\n\nCurrent phase: mid conversation. "
+            "STRICT: Respond in 2-3 sentences only. End with ONE clear question."
+        )
+    else:
+        system += (
+            "\n\nSTRICT: Keep response to 2-4 sentences maximum. "
+            "Be conversational, not therapeutic. End with a question to keep dialogue going."
         )
     return system
 
