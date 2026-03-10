@@ -172,7 +172,7 @@ def generate_counselor_response(
         model=ollama_model,
         endpoint=ollama_endpoint,
         temperature=temperature,
-        num_ctx=4096,
+        num_ctx=2048,
     )
 
     messages = _build_chat_messages(history, user_message, rag_chunks, energy_node)
@@ -214,34 +214,42 @@ def generate_solution_response(
         return llm.chat(messages, system=_SOLUTION_SYSTEM, temperature=temperature)
 
 
-def fallback_response(energy_node: Optional[str]) -> str:
-    """Simple fallback when Ollama is unavailable."""
+def fallback_response(energy_node: Optional[str], user_text: str = "") -> str:
+    """Simple fallback when Ollama is unavailable. Varies based on user_text length."""
+    import hashlib
+    # Pick a variant based on user text so it doesn't repeat
+    variant = int(hashlib.md5((user_text or "x").encode()).hexdigest(), 16) % 3
+
     node_responses = {
-        "blocked_energy": (
-            "I can feel that you're carrying something really heavy right now. "
-            "It's okay to just be where you are. You don't have to have it all figured out. "
-            "I'm here with you."
-        ),
-        "depleted_energy": (
-            "It sounds like you've been giving so much — to everyone except yourself. "
-            "That tiredness you feel is real, and it's telling you something important. "
-            "You matter too."
-        ),
-        "scattered_energy": (
-            "It sounds like everything is pulling at you from all directions. "
-            "That overwhelm is exhausting. You deserve to breathe and just be for a moment."
-        ),
-        "outofcontrol_energy": (
-            "I can sense there's a lot of intensity inside right now. "
-            "Those feelings are valid — they're not weakness. "
-            "Let's take this one breath at a time."
-        ),
-        "normal_energy": (
-            "It sounds like you're in a reflective space, looking for something deeper. "
-            "That curiosity about growth is a beautiful starting point."
-        ),
+        "blocked_energy": [
+            "That sounds really heavy. What part of it is weighing on you the most right now?",
+            "I hear you. It's okay to not have it figured out. What feels hardest in this moment?",
+            "You don't have to carry this alone. What would feel like a small relief right now?",
+        ],
+        "depleted_energy": [
+            "You've been giving a lot, haven't you. What's draining you the most?",
+            "That tiredness is real. When did you last feel like yourself?",
+            "It sounds like you've been running on empty. What does your day usually look like?",
+        ],
+        "scattered_energy": [
+            "Everything seems to be pulling at you at once. What's the loudest thing on your mind?",
+            "That overwhelm makes sense. Which part of this feels hardest to handle?",
+            "You're juggling a lot. What would help you feel even slightly more settled?",
+        ],
+        "outofcontrol_energy": [
+            "There's a lot of intensity in what you're carrying. What triggered this the most?",
+            "Those feelings are valid. What's been building up inside you?",
+            "I'm here with you. What do you most need right now — to be heard, or to find a way through?",
+        ],
+        "normal_energy": [
+            "That's interesting — what's been on your mind lately?",
+            "I'm curious — what brought you here today?",
+            "Tell me more — what's been sitting with you?",
+        ],
     }
-    return node_responses.get(
-        energy_node or "",
-        "Thank you for sharing that with me. I'm here and I'm listening.",
-    )
+    options = node_responses.get(energy_node or "", [
+        "I'm here with you. Tell me more about what's going on.",
+        "That makes sense. What's been the hardest part?",
+        "I hear you. What would feel helpful right now?",
+    ])
+    return options[variant % len(options)]

@@ -423,8 +423,8 @@ class ConversationEngine:
         """Generate counselor response via Ollama."""
         from .counselor import generate_counselor_response, fallback_response
 
-        # Use history minus the just-added user message (it's in rag context)
-        history = self.state.messages[:-1]  # exclude current user message
+        # Limit history to last 8 messages (4 turns) to avoid Ollama timeout
+        history = self.state.messages[:-1][-8:]  # exclude current, keep last 8
 
         try:
             return generate_counselor_response(
@@ -441,7 +441,7 @@ class ConversationEngine:
             )
         except Exception as exc:
             logger.warning("Ollama response failed: %s — using fallback.", exc)
-            return fallback_response(self.state.energy_node)
+            return fallback_response(self.state.energy_node, user_text)
 
     # ------------------------------------------------------------------
     # Convenience info
