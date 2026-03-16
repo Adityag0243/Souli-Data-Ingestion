@@ -92,12 +92,14 @@ def init_session():
 
 
 _PHASE_LABELS = {
-    "greeting":    ("Greeting",     "phase-badge"),
-    "intake":      ("Intake",       "phase-badge"),
-    "deepening":   ("Deepening",    "phase-badge"),
-    "intent_check":("Intent Check", "phase-badge"),
-    "venting":     ("Venting",      "phase-badge"),
-    "solution":    ("Solution",     "phase-badge"),
+    "greeting":     ("Greeting",      "phase-badge"),
+    "intake":       ("Intake",        "phase-badge"),
+    "sharing":      ("Sharing",       "phase-badge"),   
+    "summary":      ("Summary Check", "phase-badge"), 
+    "deepening":    ("Deepening",     "phase-badge"),
+    "intent_check": ("Intent Check",  "phase-badge"),
+    "venting":      ("Venting",       "phase-badge"),
+    "solution":     ("Solution",      "phase-badge"),
 }
 
 _NODE_LABELS = {
