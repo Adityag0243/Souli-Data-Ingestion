@@ -1,6 +1,7 @@
 """
-Intent detector — decides whether the user just wants to be heard (vent mode)
-or is actively looking for guidance/solutions (solution mode).
+Intent detector — decides whether the user just wants to be heard (vent mode),
+is openly sharing (sharing mode), or is actively looking for guidance/solutions
+(solution mode).
 
 Uses keyword heuristics first; can be upgraded to LLM classification if needed.
 """
@@ -9,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-IntentType = Literal["venting", "solution", "unclear"]
+IntentType = Literal["venting", "sharing", "solution", "unclear"]
 
 # ---------------------------------------------------------------------------
 # Keyword patterns
@@ -45,16 +46,24 @@ _SOLUTION_PATTERNS = [
 ]
 
 _VENTING_PATTERNS = [
-    r"\bjust (want|need) to (vent|talk|share|say)\b",
+    r"\bjust (want|need) to (vent|talk|say)\b",
     r"\bjust listen\b",
-    r"\bi('m| am) (just|only) (sharing|venting|talking)\b",
+    r"\bi('m| am) (just|only) (venting|talking)\b",
     r"\bnot (looking for|asking for) (advice|solution|help)\b",
     r"\bdon't (need|want) advice\b",
     r"\bi know what (i'm|i am) doing\b",
-    r"\bjust (feel|feeling)\b",
-    r"\bi('m| am) (sad|upset|hurt|angry|frustrated|tired|exhausted|overwhelmed)\b",
-    r"\bnobody (understands|listens)\b",
+]
+
+# Sharing patterns: user is open, talkative, wants to be heard and understood
+_SHARING_PATTERNS = [
+    r"\bjust (want|need) to (share|open up|express)\b",
+    r"\bi('m| am) (just|only) sharing\b",
+    r"\bwanted to (tell|share|talk about)\b",
     r"\bi feel (so|really|very|completely)\b",
+    r"\bi('ve| have) been (feeling|going through|dealing with)\b",
+    r"\brecently\b",
+    r"\blately\b",
+    r"\bsince (last|the|a)\b",
 ]
 
 _UNCLEAR_PATTERNS = [
@@ -63,21 +72,91 @@ _UNCLEAR_PATTERNS = [
     r"\bi('m| am) not sure\b",
 ]
 
+# ---------------------------------------------------------------------------
+# Summary confirmation detection
+# ---------------------------------------------------------------------------
+
+_SUMMARY_YES_PATTERNS = [
+    r"\b(yes|yeah|yep|yup|correct|right|exactly|precisely|that('?s| is) right)\b",
+    r"\byes.{0,20}(help|move|proceed|go ahead|ready)\b",
+    r"\b(haan|ha|sahi|bilkul|theek hai)\b",  # Hinglish
+    r"\bthat('?s| is) (correct|right|it|accurate)\b",
+    r"\byou('?ve| have) (got|understood|captured) (it|me|that)\b",
+    r"\bpretty much\b",
+    r"\bmore or less\b",
+]
+
+_SUMMARY_WANT_MORE_TALK_PATTERNS = [
+    r"\b(but|also|and also|actually|wait)\b.{0,30}(want|need|like) to (share|talk|say|add)\b",
+    r"\bthere('?s| is) (more|something else|another thing)\b",
+    r"\bi (also|want to) (add|mention|tell you)\b",
+    r"\bnot (quite|exactly|fully|completely)\b",
+    r"\bkind of but\b",
+    r"\bnot really\b",
+]
+
+
+def detect_summary_response(text: str) -> Literal["confirmed", "wants_more", "correction", "unclear"]:
+    """
+    Detect how the user responded to Souli's summary confirmation message.
+
+    Returns:
+        "confirmed"    — user agrees with summary and is ready to move forward
+        "wants_more"   — user agrees but wants to keep sharing before moving on
+        "correction"   — user disagrees or wants to correct the summary
+        "unclear"      — couldn't determine
+    """
+    t = (text or "").lower().strip()
+
+    # Short affirmative: "yes", "yeah", "correct", etc. → confirmed
+    short_yes = re.match(r"^(yes|yeah|yep|yup|correct|right|exactly|haan|ha|sahi|hmm|ok|okay|sure)[\.,!]*$", t)
+    if short_yes:
+        return "confirmed"
+
+    # Yes + want to talk more
+    for pat in _SUMMARY_WANT_MORE_TALK_PATTERNS:
+        if re.search(pat, t):
+            return "wants_more"
+
+    # Affirmative
+    for pat in _SUMMARY_YES_PATTERNS:
+        if re.search(pat, t):
+            # Check if they also want to add more
+            if any(re.search(p, t) for p in _SUMMARY_WANT_MORE_TALK_PATTERNS):
+                return "wants_more"
+            return "confirmed"
+
+    # Negation / correction signals
+    negation_words = ["no", "not really", "not quite", "that's not", "you got it wrong",
+                      "nahi", "nope", "incorrect", "wrong", "misunderstood"]
+    if any(w in t for w in negation_words):
+        return "correction"
+
+    # If it's a long message with new info, probably adding more
+    if len(t.split()) > 20:
+        return "wants_more"
+
+    return "unclear"
+
 
 def detect_intent(text: str, history_texts: list[str] | None = None) -> IntentType:
     """
     Detect user intent from current message and optionally recent history.
-    Returns 'venting', 'solution', or 'unclear'.
+    Returns 'sharing', 'venting', 'solution', or 'unclear'.
     """
     combined = text.lower()
     if history_texts:
-        # Look at last 2 turns for context
         combined = " ".join([combined] + [h.lower() for h in history_texts[-2:]])
 
     # Solution signals are strong — check first
     for pat in _SOLUTION_PATTERNS:
         if re.search(pat, combined):
             return "solution"
+
+    # Explicit sharing signals
+    for pat in _SHARING_PATTERNS:
+        if re.search(pat, combined):
+            return "sharing"
 
     # Explicit venting signals
     for pat in _VENTING_PATTERNS:
