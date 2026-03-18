@@ -363,7 +363,8 @@ def health():
     # Check Ollama
     try:
         from souli_pipeline.llm.ollama import OllamaLLM
-        llm = OllamaLLM()
+        ollama_endpoint = os.environ.get("OLLAMA_ENDPOINT", "http://localhost:11434")
+        llm = OllamaLLM(endpoint=ollama_endpoint)
         ollama_status = "ok" if llm.is_available() else "unreachable"
     except Exception:
         ollama_status = "error"
